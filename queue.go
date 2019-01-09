@@ -17,9 +17,10 @@ var (
 )
 
 type Item struct {
-	ID    uint64
-	Key   []byte
-	Value []byte
+	ID       uint64
+	Key      []byte
+	Value    []byte
+	RetryCnt int
 }
 
 func (i *Item) ToString() string {
