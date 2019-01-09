@@ -5,9 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"errors"
-	"github.com/syndtr/goleveldb/leveldb"
 	"os"
 	"sync"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -17,10 +18,9 @@ var (
 )
 
 type Item struct {
-	ID       uint64
-	Key      []byte
-	Value    []byte
-	RetryCnt int
+	ID    uint64
+	Key   []byte
+	Value []byte
 }
 
 func (i *Item) ToString() string {
