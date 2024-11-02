@@ -1,7 +1,9 @@
 package ds
 
 import (
+	"bytes"
 	"encoding/binary"
+	"encoding/gob"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -65,6 +67,19 @@ func (pq *PriorityQueue) EnqueueWithPriority(value []byte, priority uint8) (*Pri
 		Item:     Item{ID: id, Key: key, Value: value},
 		Priority: priority,
 	}, nil
+}
+
+func (pq *PriorityQueue) EnqueueString(value string, priority uint8) (*PriorityItem, error) {
+	return pq.EnqueueWithPriority([]byte(value), priority)
+}
+
+func (pq *PriorityQueue) EnqueueObject(value interface{}, priority uint8) (*PriorityItem, error) {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+	if err := encoder.Encode(value); err != nil {
+		return nil, err
+	}
+	return pq.EnqueueWithPriority(buffer.Bytes(), priority)
 }
 
 // Dequeue removes and returns the highest priority item
