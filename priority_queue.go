@@ -146,3 +146,33 @@ func (pq *PriorityQueue) Peek() (*PriorityItem, error) {
 		Priority: priority,
 	}, nil
 }
+
+func (pq *PriorityQueue) init() error {
+	iter := pq.db.NewIterator(nil, nil)
+	defer iter.Release()
+
+	if !iter.First() {
+		return iter.Error()
+	}
+
+	// Find minimum ID among all entries
+	minID := uint64(^uint64(0)) // Max uint64 value
+	maxID := uint64(0)
+
+	for ; iter.Valid(); iter.Next() {
+		_, id := decompositeKey(iter.Key())
+		if id < minID {
+			minID = id
+		}
+		if id > maxID {
+			maxID = id
+		}
+	}
+
+	if minID != ^uint64(0) {
+		pq.head = minID - 1
+		pq.tail = maxID
+	}
+
+	return iter.Error()
+}
