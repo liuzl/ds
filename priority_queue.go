@@ -47,14 +47,24 @@ type PriorityQueue struct {
 
 // findHighestPriority returns the priority value that has the highest priority (lowest number)
 func (pq *PriorityQueue) findHighestPriority() uint8 {
-	for i := uint8(0); i < 255; i++ {
+	// Since we track minPriority, we can directly return it if there are items
+	if pq.hasItems[pq.minPriority] {
+		return pq.minPriority
+	}
+
+	// If minPriority is invalid, scan for the next valid priority
+	for i := pq.minPriority + 1; i < 255; i++ {
 		if pq.hasItems[i] {
+			pq.minPriority = i // Update minPriority
 			return i
 		}
 	}
 	if pq.hasItems[255] {
+		pq.minPriority = 255 // Update minPriority
 		return 255
 	}
+
+	pq.minPriority = 0 // Reset minPriority when queue is empty
 	return 0
 }
 
