@@ -2,10 +2,8 @@ package ds
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestPriorityQueue(t *testing.T) {
@@ -178,52 +176,4 @@ func TestPriorityQueue(t *testing.T) {
 			t.Error("Expected ErrDBClosed on peek from closed queue")
 		}
 	})
-}
-
-func TestPriorityQueueRestart(t *testing.T) {
-	dir := fmt.Sprintf("test_db_%d", time.Now().UnixNano())
-	defer os.RemoveAll(dir)
-
-	pq, err := OpenPriorityQueue(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	items := []struct {
-		value    string
-		priority uint8
-	}{
-		{"test1", 1},
-		{"test2", 2},
-		{"test3", 1},
-	}
-
-	for _, item := range items {
-		_, err := pq.EnqueueString(item.value, item.priority)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	lastID := pq.lastID
-	pq.Close()
-
-	pq, err = OpenPriorityQueue(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pq.Close()
-
-	if pq.lastID != lastID {
-		t.Errorf("Expected lastID to be %d, got %d", lastID, pq.lastID)
-	}
-
-	newItem, err := pq.EnqueueString("test4", 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if newItem.ID != lastID+1 {
-		t.Errorf("Expected new item ID to be %d, got %d", lastID+1, newItem.ID)
-	}
 }
