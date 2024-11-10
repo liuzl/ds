@@ -2,16 +2,16 @@ package ds
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestPriorityQueue(t *testing.T) {
-	// 设置测试目录
 	dir := "./test_priority_queue"
 	defer os.RemoveAll(dir)
 
-	// 测试打开队列
 	t.Run("Open Priority Queue", func(t *testing.T) {
 		pq, err := OpenPriorityQueue(dir)
 		if err != nil {
@@ -24,7 +24,6 @@ func TestPriorityQueue(t *testing.T) {
 		}
 	})
 
-	// 测试基本的入队和出队操作
 	t.Run("Basic Enqueue and Dequeue", func(t *testing.T) {
 		pq, err := OpenPriorityQueue(dir)
 		if err != nil {
@@ -53,7 +52,6 @@ func TestPriorityQueue(t *testing.T) {
 		}
 	})
 
-	// 测试优先级顺序
 	t.Run("Priority Order", func(t *testing.T) {
 		pq, err := OpenPriorityQueue(dir)
 		if err != nil {
@@ -61,7 +59,6 @@ func TestPriorityQueue(t *testing.T) {
 		}
 		defer pq.Close()
 
-		// 按不同优先级入队
 		_, err = pq.EnqueueWithPriority([]byte("low"), 3)
 		if err != nil {
 			t.Error(err)
@@ -75,7 +72,6 @@ func TestPriorityQueue(t *testing.T) {
 			t.Error(err)
 		}
 
-		// 验证出队顺序是否正确
 		expected := []struct {
 			value    string
 			priority uint8
@@ -100,7 +96,6 @@ func TestPriorityQueue(t *testing.T) {
 		}
 	})
 
-	// 测试Peek操作
 	t.Run("Peek Operation", func(t *testing.T) {
 		pq, err := OpenPriorityQueue(dir)
 		if err != nil {
@@ -108,7 +103,6 @@ func TestPriorityQueue(t *testing.T) {
 		}
 		defer pq.Close()
 
-		// 入队两个项
 		value1 := []byte("test1")
 		priority1 := uint8(1)
 		_, err = pq.EnqueueWithPriority(value1, priority1)
@@ -123,7 +117,6 @@ func TestPriorityQueue(t *testing.T) {
 			t.Error(err)
 		}
 
-		// 测试Peek
 		peeked, err := pq.Peek()
 		if err != nil {
 			t.Error(err)
@@ -137,14 +130,12 @@ func TestPriorityQueue(t *testing.T) {
 			t.Errorf("Expected priority %d, got %d", priority1, peeked.Priority)
 		}
 
-		// 确保Peek不会移除项
 		length := pq.Length()
 		if length != 2 {
 			t.Errorf("Expected length 2, got %d", length)
 		}
 	})
 
-	// 测试空队列操作
 	t.Run("Empty Queue Operations", func(t *testing.T) {
 		pq, err := OpenPriorityQueue("empty_test")
 		defer os.RemoveAll("empty_test")
@@ -153,20 +144,17 @@ func TestPriorityQueue(t *testing.T) {
 		}
 		defer pq.Close()
 
-		// 测试空队列的Dequeue
 		_, err = pq.Dequeue()
 		if err != ErrEmpty {
 			t.Errorf("Expected ErrEmpty on empty queue Dequeue, got %+v", err)
 		}
 
-		// 测试空队列的Peek
 		_, err = pq.Peek()
 		if err != ErrEmpty {
 			t.Errorf("Expected ErrEmpty on empty queue Peek, got %+v", err)
 		}
 	})
 
-	// 测试关闭队列后的操作
 	t.Run("Closed Queue Operations", func(t *testing.T) {
 		pq, err := OpenPriorityQueue(dir)
 		if err != nil {
@@ -190,4 +178,52 @@ func TestPriorityQueue(t *testing.T) {
 			t.Error("Expected ErrDBClosed on peek from closed queue")
 		}
 	})
+}
+
+func TestPriorityQueueRestart(t *testing.T) {
+	dir := fmt.Sprintf("test_db_%d", time.Now().UnixNano())
+	defer os.RemoveAll(dir)
+
+	pq, err := OpenPriorityQueue(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	items := []struct {
+		value    string
+		priority uint8
+	}{
+		{"test1", 1},
+		{"test2", 2},
+		{"test3", 1},
+	}
+
+	for _, item := range items {
+		_, err := pq.EnqueueString(item.value, item.priority)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	lastID := pq.lastID
+	pq.Close()
+
+	pq, err = OpenPriorityQueue(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pq.Close()
+
+	if pq.lastID != lastID {
+		t.Errorf("Expected lastID to be %d, got %d", lastID, pq.lastID)
+	}
+
+	newItem, err := pq.EnqueueString("test4", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if newItem.ID != lastID+1 {
+		t.Errorf("Expected new item ID to be %d, got %d", lastID+1, newItem.ID)
+	}
 }
